@@ -81,9 +81,9 @@ def extract_structured_data(ocr_text: str, image_file=None, model: str = DEFAULT
         try:
             image_bytes = image_file.getvalue() if hasattr(image_file, 'getvalue') else open(image_file, "rb").read()
             payload["images"] = [base64.b64encode(image_bytes).decode("utf-8")]
-            model = "llama3.2-vision"
+            model = "llava"
             payload["model"] = model
-            logger.info("Image detected. Switching Ollama model to Llama 3.2 Vision for analysis.")
+            logger.info("Image detected. Switching Ollama model to LLaVA for Vision analysis.")
         except Exception as e:
             logger.error(f"Failed to encode image for Vision API: {e}")
 

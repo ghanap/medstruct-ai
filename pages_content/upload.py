@@ -50,7 +50,7 @@ def render():
             bar = st.progress(0)
             status = st.empty()
 
-            status.markdown("🔍 **Running Tesseract OCR locally…**")
+            status.markdown("🔍 **Running Microsoft TrOCR locally…**")
             bar.progress(20)
             result = run_pipeline(uploaded, doc_type="auto", save_to_db=True)
             status.markdown("🤖 **Ollama is reading the document…**")
