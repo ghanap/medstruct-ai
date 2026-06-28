@@ -44,21 +44,25 @@ def render():
         st.subheader("AI Analysis")
         st.caption("Ollama auto-detects the document type — no selection needed!")
 
-        run_btn = st.button("⚡ Analyse Document", type="primary", use_container_width=True)
+        # Auto-trigger analysis when a new file is uploaded
+        if "last_uploaded_file" not in st.session_state or st.session_state.last_uploaded_file != uploaded.name:
+            st.session_state.last_uploaded_file = uploaded.name
+            st.session_state.analysis_result = None
 
-        if run_btn:
+        if st.session_state.analysis_result is None:
             bar = st.progress(0)
             status = st.empty()
 
-            status.markdown("🔍 **Running Microsoft TrOCR locally…**")
-            bar.progress(20)
-            result = run_pipeline(uploaded, doc_type="auto", save_to_db=True)
-            status.markdown("🤖 **Ollama is reading the document…**")
-            bar.progress(80)
+            status.markdown("🔍 **Auto-analyzing document…**")
+            bar.progress(30)
+            st.session_state.analysis_result = run_pipeline(uploaded, doc_type="auto", save_to_db=True)
             bar.progress(100)
             status.empty()
             bar.empty()
 
+        result = st.session_state.analysis_result
+
+        if result:
             if result["error"]:
                 st.error(f"❌ {result['error']}")
                 return
