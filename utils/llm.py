@@ -10,11 +10,12 @@ OLLAMA_API_URL = "http://localhost:11434/api/generate"
 DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "mistral")
 
 AUTO_DETECT_PROMPT = """
-You are an expert medical document analyst. I will give you raw OCR text from a medical document, AND/OR a raw image of a medical scan (like an X-Ray).
+You are an expert medical analyst. I will provide raw OCR text AND/OR a medical image (such as an X-Ray, MRI, or scan).
 
-Step 1 — Auto-detect the document type.
-Step 2 — Extract ALL relevant information (including analyzing the visual image for fractures or findings if an image is provided).
-Step 3 — Return a single JSON with these fields:
+CRITICAL INSTRUCTION: If you receive an image (like an X-Ray of a foot or bone), you MUST analyze it. Do NOT say there is no medical document. An X-Ray IS a medical document.
+Step 1 — Auto-detect the document type (e.g. Xray Report, Prescription).
+Step 2 — Extract ALL relevant information (if it's an X-Ray, describe the bones, joints, and any visible fractures or abnormalities in `imaging_findings`).
+Step 3 — Return a single JSON with these fields (use null for fields you cannot find):
 
 {{
   "document_type": "One of: prescription / lab_report / discharge_summary / xray_report / scan_report / blood_test / other",

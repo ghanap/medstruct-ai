@@ -1,7 +1,6 @@
 """
 MedStruct AI — Main entry point
 """
-import os
 import streamlit as st
 from utils.database import init_db, get_stats
 
@@ -21,7 +20,7 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-html, body, [class*="css"], p, span, label, div {
+html, body, p, label, .stMarkdown {
     font-family: 'Inter', sans-serif !important;
 }
 

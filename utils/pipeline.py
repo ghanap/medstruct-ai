@@ -28,6 +28,11 @@ def run_pipeline(image_path_or_file, doc_type="Prescription", save_to_db=True):
         text = ""
         
     # 2. LLM Extraction
+    if hasattr(image_path_or_file, 'seek'):
+        try:
+            image_path_or_file.seek(0)
+        except Exception:
+            pass
     structured_data, model = extract_structured_data(text, image_path_or_file)
     result["llm_model"] = model
     
