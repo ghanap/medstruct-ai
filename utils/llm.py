@@ -10,21 +10,21 @@ OLLAMA_API_URL = "http://127.0.0.1:11434/api/generate"
 DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "mistral")
 
 TRIAGE_PROMPT = """
-You are a medical triage AI. Look at the image provided.
-If the image contains bones, joints, or organs (like an X-Ray, MRI, or CT Scan), reply ONLY with the exact word: xray
-If the image is a piece of paper, a form, or contains text/handwriting (like a prescription or lab report), reply ONLY with the exact word: document
-Reply with ONLY ONE WORD: either 'xray' or 'document'. Do not include any other text.
+Look at the image provided.
+Is this an X-Ray of a bone/joint, or a Medical Document (like a prescription)?
+If it is an X-Ray, reply ONLY with the exact word: xray
+If it is a Document with text, reply ONLY with the exact word: document
 """
 
 XRAY_PROMPT = """
 You are an expert radiologist. Analyze this medical image.
-Describe the bones, joints, and any visible fractures or abnormalities.
+Carefully check if there are any breaks, fractures, or abnormalities in the bones.
 Return a single JSON with these exact fields:
 {
   "document_type": "xray_report",
-  "summary": "A 2-3 sentence plain-English summary of what this X-ray shows.",
-  "diagnosis": "Main diagnosis or finding (e.g. Ankle fracture) or null",
-  "imaging_findings": "Detailed description of what is visible and any abnormalities found"
+  "summary": "A 2-3 sentence plain-English summary of what this X-ray shows and if any breaks/fractures are present.",
+  "diagnosis": "Main diagnosis or finding (e.g. Ankle fracture, Normal foot) or null",
+  "imaging_findings": "Detailed description of the bones and whether any breaks or fractures are visible."
 }
 IMPORTANT: Return ONLY the JSON. No markdown, no extra text.
 """
@@ -116,7 +116,7 @@ def _run_llm_json(payload, model):
             return {"error": "Ollama did not return valid JSON.", "raw_response": response_text}, model
             
     except requests.exceptions.ConnectionError:
-        return {"error": f"❌ Cannot connect to Ollama at {OLLAMA_API_URL}. If you are on Streamlit Cloud, it cannot access your computer's local Ollama. Please use the local app."}, model
+        return {"error": f"❌ Cannot connect to Ollama at {OLLAMA_API_URL}."}, model
     except requests.exceptions.Timeout:
         return {"error": "⏱️ Ollama timed out. The model may still be loading — try again in a moment."}, model
     except requests.exceptions.RequestException as e:
