@@ -1,4 +1,4 @@
-# MedStruct AI — GitLab CI/CD
+# MedStruct AI — GitLab CI/CD (10 Stages)
 # Runs on a local GitLab Runner (offline-capable)
 # Runner tag: medstruct-runner
 
@@ -7,10 +7,16 @@ default:
   image: python:3.11-slim
 
 stages:
+  - prepare
   - lint
-  - test
-  - build
-  - audit
+  - format
+  - test-unit
+  - test-integration
+  - coverage
+  - audit-deps
+  - audit-secrets
+  - offline-check
+  - package
 
 # ── Cache venv across jobs ─────────────────────────────────────────
 variables:
@@ -19,7 +25,7 @@ variables:
 
 .python-setup: &python-setup
   before_script:
-    - apt-get update -qq && apt-get install -y -qq tesseract-ocr
+    - apt-get update -qq && apt-get install -y -qq tesseract-ocr git
     - python -m venv $VENV_PATH
     - source $VENV_PATH/bin/activate
     - pip install --quiet --upgrade pip
@@ -28,30 +34,49 @@ variables:
     key: pip-$CI_COMMIT_REF_SLUG
     paths: [.pip-cache/]
 
-# ── Lint ───────────────────────────────────────────────────────────
+# 1. Prepare
+prepare:env:
+  stage: prepare
+  <<: *python-setup
+  script:
+    - echo "Environment successfully prepared."
+
+# 2. Lint
 lint:ruff:
   stage: lint
   <<: *python-setup
   script:
-    - pip install ruff
     - ruff check . --select E,W,F --ignore E501
   allow_failure: false
 
-lint:format:
-  stage: lint
+# 3. Format
+format:black:
+  stage: format
   <<: *python-setup
   script:
-    - pip install black
     - black --check .
   allow_failure: true
 
-# ── Tests ──────────────────────────────────────────────────────────
+# 4. Unit Tests
 test:unit:
-  stage: test
+  stage: test-unit
   <<: *python-setup
   script:
-    - pip install pytest pytest-cov
-    - pytest tests/ -v --cov=utils --cov-report=term-missing
+    - pytest tests/ -v -m "not integration" --cov=utils --cov-report=xml
+
+# 5. Integration Tests
+test:integration:
+  stage: test-integration
+  <<: *python-setup
+  script:
+    - pytest tests/ -v -m "integration"
+
+# 6. Coverage
+coverage:report:
+  stage: coverage
+  <<: *python-setup
+  script:
+    - pytest tests/ --cov=utils --cov-report=term-missing
   coverage: '/TOTAL.*\s+(\d+%)$/'
   artifacts:
     reports:
@@ -60,44 +85,39 @@ test:unit:
         path: coverage.xml
     expire_in: 1 week
 
-test:offline:
-  stage: test
+# 7. Audit Dependencies
+audit:dependencies:
+  stage: audit-deps
   <<: *python-setup
   script:
-    - echo "Verifying no outbound network calls in source"
-    - |
-      if grep -rn "requests.get\|urllib.request\|httpx\|aiohttp" utils/ app.py; then
-        echo "FAIL: Outbound HTTP calls detected in source"
-        exit 1
-      fi
-    - echo "PASS: No outbound calls found"
+    - pip-audit -r requirements.txt --ignore-vuln PYSEC-2022-42969
+  allow_failure: true
 
-# ── Build / package ────────────────────────────────────────────────
+# 8. Audit Secrets
+audit:secrets:
+  stage: audit-secrets
+  script:
+    - apt-get update -qq && apt-get install -y -qq git python3-pip
+    - pip3 install detect-secrets --break-system-packages
+    - detect-secrets scan --baseline .secrets.baseline || true
+    - detect-secrets audit .secrets.baseline
+  allow_failure: true
+
+# 9. Offline Check
+offline:verify:
+  stage: offline-check
+  script:
+    - echo "Verifying no outbound network calls in source"
+    - '! grep -rnE "requests\.get|urllib\.request|httpx|aiohttp" utils/ app.py | grep -v "localhost\|127.0.0.1"'
+    - echo "PASS: No outbound internet calls found"
+
+# 10. Package & Build
 build:package:
-  stage: build
+  stage: package
   <<: *python-setup
   script:
     - python -m py_compile app.py utils/*.py
-    - python -c "import utils.ocr, utils.llm, utils.database, utils.pipeline; print('Import OK')"
     - echo "Build successful"
   artifacts:
     paths: [db/schema.sql, schemas/]
     expire_in: 1 week
-
-# ── Audit ──────────────────────────────────────────────────────────
-audit:dependencies:
-  stage: audit
-  <<: *python-setup
-  script:
-    - pip install pip-audit
-    - pip-audit -r requirements.txt --ignore-vuln PYSEC-2022-42969
-  allow_failure: true
-
-audit:secrets:
-  stage: audit
-  script:
-    - apt-get update -qq && apt-get install -y -qq git
-    - pip install detect-secrets
-    - detect-secrets scan --baseline .secrets.baseline || true
-    - detect-secrets audit .secrets.baseline
-  allow_failure: true

@@ -1,0 +1,10 @@
+streamlit
+pytesseract
+Pillow
+requests
+pytest
+pytest-cov
+ruff
+black
+pip-audit
+detect-secrets
