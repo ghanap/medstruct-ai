@@ -13,7 +13,11 @@ from utils.database  import (
     get_prescription,
     search_prescriptions,
     get_stats,
+    init_db
 )
+
+# Initialize database tables if they don't exist
+init_db()
 
 # ── Page config ────────────────────────────────────────────────────
 st.set_page_config(
@@ -69,11 +73,19 @@ if page == "📤 Upload & Extract":
     st.title("Upload Medical Document")
     st.caption("Prescriptions, lab reports, discharge summaries — processed entirely on your device.")
 
-    uploaded = st.file_uploader(
-        "Drop a file here or click to browse",
-        type=["jpg", "jpeg", "png", "bmp", "tiff", "pdf"],
-        help="Max 20 MB · Supported: JPG, PNG, BMP, TIFF, PDF",
-    )
+    tab1, tab2 = st.tabs(["📁 Upload File", "📷 Take Picture"])
+    
+    with tab1:
+        uploaded_file = st.file_uploader(
+            "Drop a file here or click to browse",
+            type=["jpg", "jpeg", "png", "bmp", "tiff", "pdf"],
+            help="Max 20 MB · Supported: JPG, PNG, BMP, TIFF, PDF",
+        )
+        
+    with tab2:
+        camera_file = st.camera_input("Take a picture of the document")
+        
+    uploaded = uploaded_file or camera_file
 
     if uploaded:
         col_img, col_result = st.columns([1, 1], gap="large")
