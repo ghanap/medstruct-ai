@@ -1,0 +1,165 @@
+# MedStruct AI — GitLab CI/CD (10 Stages)
+# Windows Shell (PowerShell) executor — NO docker, NO apt-get
+# Runner tag: medstruct-runner
+
+default:
+  tags: [medstruct-runner]
+
+stages:
+  - prepare
+  - lint
+  - format
+  - test-unit
+  - test-integration
+  - coverage
+  - audit-deps
+  - audit-secrets
+  - offline-check
+  - package
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR\\.pip-cache"
+  VENV_PATH: "$CI_PROJECT_DIR\\venv311"
+  PYTHON: "py -3.11"
+
+.python-setup: &python-setup
+  before_script:
+    - py -3.11 -m venv $VENV_PATH
+    - $VENV_PATH\Scripts\pip.exe install --quiet --upgrade pip
+    - $VENV_PATH\Scripts\pip.exe install --quiet -r requirements.txt
+  cache:
+    key: pip-$CI_COMMIT_REF_SLUG
+    paths: [.pip-cache/]
+
+# 1. Prepare — verify all required files and imports work
+prepare:env:
+  stage: prepare
+  <<: *python-setup
+  script:
+    - Write-Host "=== Checking required files ==="
+    - if (!(Test-Path "app.py")) { Write-Error "MISSING app.py"; exit 1 }
+    - if (!(Test-Path "requirements.txt")) { Write-Error "MISSING requirements.txt"; exit 1 }
+    - if (!(Test-Path "utils\database.py")) { Write-Error "MISSING utils/database.py"; exit 1 }
+    - if (!(Test-Path "utils\ocr.py")) { Write-Error "MISSING utils/ocr.py"; exit 1 }
+    - if (!(Test-Path "utils\llm.py")) { Write-Error "MISSING utils/llm.py"; exit 1 }
+    - if (!(Test-Path "utils\pipeline.py")) { Write-Error "MISSING utils/pipeline.py"; exit 1 }
+    - Write-Host "=== Verifying Python imports ==="
+    - $VENV_PATH\Scripts\python.exe -c "from utils.database import init_db, save_prescription, get_stats; print('database OK')"
+    - $VENV_PATH\Scripts\python.exe -c "from utils.llm import extract_structured_data; print('llm OK')"
+    - $VENV_PATH\Scripts\python.exe -c "from utils.ocr import extract_text; print('ocr OK')"
+    - $VENV_PATH\Scripts\python.exe -c "from utils.pipeline import run_pipeline; print('pipeline OK')"
+    - Write-Host "All checks passed!"
+
+# 2. Lint with ruff
+lint:ruff:
+  stage: lint
+  <<: *python-setup
+  script:
+    - $VENV_PATH\Scripts\ruff.exe check . --select E,W,F --ignore E501
+  allow_failure: false
+
+# 3. Format check with black
+format:black:
+  stage: format
+  <<: *python-setup
+  script:
+    - $VENV_PATH\Scripts\black.exe --check .
+  allow_failure: true
+
+# 4. Unit Tests
+test:unit:
+  stage: test-unit
+  <<: *python-setup
+  script:
+    - $VENV_PATH\Scripts\pytest.exe tests\test_database.py tests\test_llm.py tests\test_ocr.py -v --tb=short -m "not integration" --cov=utils --cov-report=xml --cov-report=term-missing
+    - $VENV_PATH\Scripts\coverage.exe report --fail-under=50
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+
+# 5. Integration Tests
+test:integration:
+  stage: test-integration
+  <<: *python-setup
+  script:
+    - $VENV_PATH\Scripts\pytest.exe tests\test_pipeline.py -v --tb=short
+
+# 6. Coverage full report
+coverage:report:
+  stage: coverage
+  <<: *python-setup
+  script:
+    - $VENV_PATH\Scripts\pytest.exe tests\ --cov=utils --cov-report=term-missing
+    - $VENV_PATH\Scripts\coverage.exe report
+  artifacts:
+    paths: [htmlcov/]
+    expire_in: 1 week
+
+# 7. Audit Dependencies
+audit:dependencies:
+  stage: audit-deps
+  <<: *python-setup
+  script:
+    - $VENV_PATH\Scripts\pip-audit.exe -r requirements.txt --ignore-vuln PYSEC-2022-42969
+  allow_failure: true
+
+# 8. Audit Secrets
+audit:secrets:
+  stage: audit-secrets
+  <<: *python-setup
+  script:
+    - $VENV_PATH\Scripts\detect-secrets.exe scan --exclude-files "venv.*" --exclude-files "*.lock" | Out-File -Encoding utf8 .secrets.baseline
+    - $VENV_PATH\Scripts\python.exe -c "
+import json, sys
+data = json.load(open('.secrets.baseline'))
+results = data.get('results', {})
+total = sum(len(v) for v in results.values())
+if total > 0:
+    print(f'WARNING: {total} potential secret(s) found')
+    for f, hits in results.items():
+        for h in hits: print(f'  {f}: {h[\"type\"]}')
+else:
+    print('PASS: No secrets detected')
+"
+  allow_failure: true
+
+# 9. Offline Check
+offline:verify:
+  stage: offline-check
+  <<: *python-setup
+  script:
+    - $VENV_PATH\Scripts\python.exe -c "
+import re, sys, pathlib
+bad = re.compile(r'requests\.get|urllib\.request|httpx|aiohttp')
+ok = re.compile(r'localhost|127\.0\.0\.1')
+hits = []
+for f in pathlib.Path('.').glob('**/*.py'):
+    if any(x in str(f) for x in ['venv', 'test', '__pycache__']): continue
+    for i, line in enumerate(f.read_text(errors='ignore').splitlines(), 1):
+        if bad.search(line) and not ok.search(line):
+            hits.append(f'{f}:{i}: {line.strip()}')
+if hits:
+    print('FAIL - outbound calls found:')
+    [print(h) for h in hits]
+    sys.exit(1)
+print('PASS: no outbound internet calls found')
+"
+
+# 10. Package & Build
+build:package:
+  stage: package
+  <<: *python-setup
+  script:
+    - Write-Host "=== Compiling all Python files ==="
+    - $VENV_PATH\Scripts\python.exe -m py_compile app.py
+    - $VENV_PATH\Scripts\python.exe -m py_compile utils\database.py utils\ocr.py utils\llm.py utils\pipeline.py
+    - $VENV_PATH\Scripts\python.exe -m py_compile pages_content\upload.py pages_content\history.py pages_content\search.py pages_content\dashboard.py
+    - Write-Host "=== Verifying DB schema ==="
+    - $VENV_PATH\Scripts\python.exe -c "from utils.database import init_db; init_db(':memory:'); print('Schema OK')"
+    - Write-Host "Build successful!"
+  artifacts:
+    paths: [schemas/]
+    expire_in: 1 week
