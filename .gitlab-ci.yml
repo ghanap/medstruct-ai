@@ -3,6 +3,7 @@
 # Runner tag: medstruct-runner
 
 default:
+  tags: [medstruct-runner]
   image: python:3.11-slim
 
 stages:
