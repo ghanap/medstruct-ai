@@ -12,8 +12,8 @@ DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "mistral")
 AUTO_DETECT_PROMPT = """
 You are an expert medical analyst. I will provide raw OCR text AND/OR a medical image (such as an X-Ray, MRI, or scan).
 
-CRITICAL INSTRUCTION 1: Look at the image to determine what it is. If you see bones or organs, it is an `xray_report`. If you see text with medications, it is a `prescription`.
-CRITICAL INSTRUCTION 2: If the image is an X-ray, ignore the OCR text and describe the bones in `imaging_findings`.
+CRITICAL INSTRUCTION 1: An X-Ray (bones/organs) IS a valid medical document. You MUST analyze it. If you see an X-Ray, set document_type to `xray_report` and describe the bones in `imaging_findings`.
+CRITICAL INSTRUCTION 2: If the image is a prescription, set document_type to `prescription`. Do NOT guess handwriting. Output null if unreadable.
 CRITICAL INSTRUCTION 3: DO NOT hallucinate. If you cannot read the handwriting, output null.
 Step 1 — Auto-detect the document type.
 Step 2 — Extract ALL relevant information.
