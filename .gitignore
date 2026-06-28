@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+venv/
+.venv/
+env/
+*.egg-info/
+dist/
+build/
+.pip-cache/
+
+# Environment
+.env
+*.env
+
+# Models (large GGUF files — never commit)
+models/*.gguf
+models/*.bin
+models/*.ggml
+
+# Database (local data — never commit)
+*.db
+*.sqlite
+*.sqlite3
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Secrets baseline
+.secrets.baseline
+
+# Test artifacts
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Uploads (user data)
+uploads/
+sample_prescriptions/*.jpg
+sample_prescriptions/*.png

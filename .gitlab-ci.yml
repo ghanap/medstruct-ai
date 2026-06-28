@@ -1,0 +1,103 @@
+# MedStruct AI — GitLab CI/CD
+# Runs on a local GitLab Runner (offline-capable)
+# Runner tag: medstruct-runner
+
+default:
+  tags: [medstruct-runner]
+  image: python:3.11-slim
+
+stages:
+  - lint
+  - test
+  - build
+  - audit
+
+# ── Cache venv across jobs ─────────────────────────────────────────
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+  VENV_PATH: "$CI_PROJECT_DIR/venv"
+
+.python-setup: &python-setup
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq tesseract-ocr
+    - python -m venv $VENV_PATH
+    - source $VENV_PATH/bin/activate
+    - pip install --quiet --upgrade pip
+    - pip install --quiet -r requirements.txt
+  cache:
+    key: pip-$CI_COMMIT_REF_SLUG
+    paths: [.pip-cache/]
+
+# ── Lint ───────────────────────────────────────────────────────────
+lint:ruff:
+  stage: lint
+  <<: *python-setup
+  script:
+    - pip install ruff
+    - ruff check . --select E,W,F --ignore E501
+  allow_failure: false
+
+lint:format:
+  stage: lint
+  <<: *python-setup
+  script:
+    - pip install black
+    - black --check .
+  allow_failure: true
+
+# ── Tests ──────────────────────────────────────────────────────────
+test:unit:
+  stage: test
+  <<: *python-setup
+  script:
+    - pip install pytest pytest-cov
+    - pytest tests/ -v --cov=utils --cov-report=term-missing
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    expire_in: 1 week
+
+test:offline:
+  stage: test
+  <<: *python-setup
+  script:
+    - echo "Verifying no outbound network calls in source"
+    - |
+      if grep -rn "requests.get\|urllib.request\|httpx\|aiohttp" utils/ app.py; then
+        echo "FAIL: Outbound HTTP calls detected in source"
+        exit 1
+      fi
+    - echo "PASS: No outbound calls found"
+
+# ── Build / package ────────────────────────────────────────────────
+build:package:
+  stage: build
+  <<: *python-setup
+  script:
+    - python -m py_compile app.py utils/*.py
+    - python -c "import utils.ocr, utils.llm, utils.database, utils.pipeline; print('Import OK')"
+    - echo "Build successful"
+  artifacts:
+    paths: [db/schema.sql, schemas/]
+    expire_in: 1 week
+
+# ── Audit ──────────────────────────────────────────────────────────
+audit:dependencies:
+  stage: audit
+  <<: *python-setup
+  script:
+    - pip install pip-audit
+    - pip-audit -r requirements.txt --ignore-vuln PYSEC-2022-42969
+  allow_failure: true
+
+audit:secrets:
+  stage: audit
+  script:
+    - apt-get update -qq && apt-get install -y -qq git
+    - pip install detect-secrets
+    - detect-secrets scan --baseline .secrets.baseline || true
+    - detect-secrets audit .secrets.baseline
+  allow_failure: true
