@@ -13,7 +13,6 @@ def load_trocr_model():
     logger.info("Loading TrOCR model into memory...")
     try:
         from transformers import TrOCRProcessor, VisionEncoderDecoderModel
-        import torch
         # Load the model (small version for speed)
         processor = TrOCRProcessor.from_pretrained("microsoft/trocr-small-handwritten")
         model = VisionEncoderDecoderModel.from_pretrained("microsoft/trocr-small-handwritten")
