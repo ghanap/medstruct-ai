@@ -6,44 +6,44 @@ import logging
 logger = logging.getLogger(__name__)
 
 OLLAMA_API_URL = "http://localhost:11434/api/generate"
-DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "mistral")
+DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "tinyllama:latest")
 
 EXTRACTION_PROMPT = """
 You are a medical data extraction assistant. I will provide you with raw OCR text from a medical document (like a prescription or lab report).
 Your task is to extract the relevant information and return it as a STRICT JSON object.
 
 The JSON should have the following structure:
-{
-  "patient": {
+{{
+  "patient": {{
     "name": "Patient Name",
     "age": "Age if present",
     "gender": "Gender if present"
-  },
-  "doctor": {
+  }},
+  "doctor": {{
     "name": "Doctor Name",
     "qualification": "Qualifications if present",
     "hospital": "Hospital or Clinic name if present"
-  },
+  }},
   "diagnosis": "Main diagnosis or chief complaint",
   "medications": [
-    {
+    {{
       "drug_name": "Name of the drug",
       "dosage": "e.g., 500mg",
       "frequency": "e.g., 1-0-1 or twice a day",
       "duration": "e.g., 5 days",
       "instructions": "e.g., after meals"
-    }
+    }}
   ],
   "lab_results": [
-    {
+    {{
       "test_name": "Name of the test",
       "value": "Result value",
       "unit": "Measurement unit",
       "reference_range": "Normal range"
-    }
+    }}
   ],
   "notes": "Any other important clinical notes"
-}
+}}
 
 If a field is not found in the text, omit it or set it to null. Do not include markdown formatting or any text outside of the JSON block.
 
