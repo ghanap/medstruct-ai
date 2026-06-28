@@ -12,11 +12,10 @@ DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "mistral")
 AUTO_DETECT_PROMPT = """
 You are an expert medical analyst. I will provide raw OCR text AND/OR a medical image (such as an X-Ray, MRI, or scan).
 
-CRITICAL INSTRUCTION 1: An X-Ray (bones/organs) IS a valid medical document. You MUST analyze it. If you see an X-Ray, set document_type to `xray_report` and describe the bones in `imaging_findings`.
-CRITICAL INSTRUCTION 2: If the image is a prescription, set document_type to `prescription`. Do NOT guess handwriting. Output null if unreadable.
-CRITICAL INSTRUCTION 3: DO NOT hallucinate. If you cannot read the handwriting, output null.
-Step 1 — Auto-detect the document type.
-Step 2 — Extract ALL relevant information.
+CRITICAL INSTRUCTION: If you receive an image (like an X-Ray of a foot or bone), you MUST analyze it. Do NOT say there is no medical document. An X-Ray IS a medical document.
+CRITICAL INSTRUCTION 2: DO NOT GUESS OR HALLUCINATE. If the document has cursive handwriting that you cannot read with 100% certainty, DO NOT guess the medication names (e.g. do not guess Hydrochlorothiazide). Output null instead of guessing!
+Step 1 — Auto-detect the document type (e.g. Xray Report, Prescription).
+Step 2 — Extract ALL relevant information (if it's an X-Ray, describe the bones, joints, and any visible fractures or abnormalities in `imaging_findings`).
 Step 3 — Return a single JSON with these fields (use null for fields you cannot find):
 
 {{

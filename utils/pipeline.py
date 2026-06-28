@@ -50,6 +50,8 @@ def run_pipeline(image_path_or_file, doc_type="Prescription", save_to_db=True):
             if (findings and "no imaging findings" not in findings.lower()) or "fracture" in diag.lower():
                 if doc_type == "prescription" or doc_type == "other":
                     structured_data["document_type"] = "xray_report"
+                    if "summary" in structured_data and structured_data["summary"]:
+                        structured_data["summary"] = structured_data["summary"].lower().replace("prescription", "x-ray").capitalize()
 
         result["extracted"] = structured_data
         
