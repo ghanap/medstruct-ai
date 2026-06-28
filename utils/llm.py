@@ -6,7 +6,7 @@ import base64
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_API_URL = "http://localhost:11434/api/generate"
+OLLAMA_API_URL = "http://127.0.0.1:11434/api/generate"
 DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "mistral")
 
 AUTO_DETECT_PROMPT = """
