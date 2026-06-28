@@ -1,53 +1,56 @@
-import pytesseract
-from PIL import Image, ImageEnhance
+import streamlit as st
 import logging
-import sys
-import os
-
-# Configure Tesseract path for Windows local environments
-if sys.platform == "win32":
-    tess_path = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-    if os.path.exists(tess_path):
-        pytesseract.pytesseract.tesseract_cmd = tess_path
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 
-def preprocess_image(image_path_or_file):
+@st.cache_resource(show_spinner=False)
+def load_trocr_model():
     """
-    Basic preprocessing: grayscale, contrast enhancement.
+    Load the TrOCR model and processor once and cache it in memory.
+    Using trocr-small-handwritten to balance speed and accuracy.
     """
+    logger.info("Loading TrOCR model into memory...")
     try:
-        img = Image.open(image_path_or_file)
-        # Convert to grayscale
-        img = img.convert('L')
-        # Enhance contrast
-        enhancer = ImageEnhance.Contrast(img)
-        img = enhancer.enhance(1.5)
-        return img
+        from transformers import TrOCRProcessor, VisionEncoderDecoderModel
+        import torch
+        # Load the model (small version for speed)
+        processor = TrOCRProcessor.from_pretrained("microsoft/trocr-small-handwritten")
+        model = VisionEncoderDecoderModel.from_pretrained("microsoft/trocr-small-handwritten")
+        logger.info("TrOCR model loaded successfully.")
+        return processor, model
+    except ImportError:
+        logger.error("transformers or torch not installed. Run: pip install transformers torch torchvision")
+        return None, None
     except Exception as e:
-        logger.error(f"Error preprocessing image: {e}")
-        return None
+        logger.error(f"Failed to load TrOCR: {e}")
+        return None, None
 
 def extract_text(image_path_or_file):
     """
-    Runs Tesseract OCR on the image and returns the raw text and confidence.
+    Runs Microsoft TrOCR on the image and returns the raw text and confidence.
     """
-    img = preprocess_image(image_path_or_file)
-    if img is None:
+    try:
+        img = Image.open(image_path_or_file).convert("RGB")
+    except Exception as e:
+        logger.error(f"Error opening image: {e}")
         return "", 0.0
 
+    processor, model = load_trocr_model()
+    if processor is None or model is None:
+        return "TROCR_NOT_FOUND_OR_FAILED", 0.0
+
     try:
-        # Get raw text
-        text = pytesseract.image_to_string(img)
+        # Generate text from image
+        pixel_values = processor(images=img, return_tensors="pt").pixel_values
+        generated_ids = model.generate(pixel_values)
+        generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
         
-        # Get confidence (average of all recognized words)
-        data = pytesseract.image_to_data(img, output_type=pytesseract.Output.DICT)
-        confidences = [int(c) for c in data['conf'] if int(c) != -1]
+        # TrOCR doesn't provide a simple confidence score per word easily, 
+        # so we assign a baseline confidence of 0.85 if it succeeds.
+        confidence = 0.85 if generated_text else 0.0
+        return generated_text.strip(), confidence
         
-        avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
-        
-        return text.strip(), round(avg_confidence, 2)
     except Exception as e:
-        logger.error(f"Tesseract OCR failed: {e}")
-        # Return fallback text for testing if tesseract isn't installed
-        return "TESSERACT_NOT_FOUND_OR_FAILED: " + str(e), 0.0
+        logger.error(f"TrOCR extraction failed: {e}")
+        return f"TROCR_FAILED: {str(e)}", 0.0
