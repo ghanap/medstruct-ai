@@ -139,9 +139,11 @@ def extract_document_data(ocr_text: str, image_file=None, model: str = DEFAULT_M
     if (not ocr_text or ocr_text.startswith("TESSERACT_NOT_FOUND_OR_FAILED") or ocr_text.startswith("TROCR_")) and not image_file:
         return {"error": "No text or image provided."}, model
 
+    final_prompt = DOCUMENT_PROMPT.replace("{ocr_text}", ocr_text.strip() or "[No readable text detected]")
+
     payload = {
         "model": model,
-        "prompt": DOCUMENT_PROMPT.format(ocr_text=ocr_text.strip() or "[No readable text detected]"),
+        "prompt": final_prompt,
         "stream": False,
         "format": "json",
     }
