@@ -41,6 +41,16 @@ def run_pipeline(image_path_or_file, doc_type="Prescription", save_to_db=True):
         result["extracted"] = structured_data
         # Still save it if we want to log the error
     else:
+        # LLaVA bug mitigation: if it finds bones/fractures but still calls it a prescription, force it
+        if "error" not in structured_data:
+            doc_type = structured_data.get("document_type", "").lower()
+            findings = structured_data.get("imaging_findings", "") or ""
+            diag = structured_data.get("diagnosis", "") or ""
+            
+            if (findings and "no imaging findings" not in findings.lower()) or "fracture" in diag.lower():
+                if doc_type == "prescription" or doc_type == "other":
+                    structured_data["document_type"] = "xray_report"
+
         result["extracted"] = structured_data
         
     # 3. Database
