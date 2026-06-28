@@ -103,7 +103,7 @@ def extract_structured_data(ocr_text: str, image_file=None, model: str = DEFAULT
             return {"error": "Ollama did not return valid JSON.", "raw_response": response_text}, model
 
     except requests.exceptions.ConnectionError:
-        return {"error": "❌ Cannot connect to Ollama. Make sure Ollama is running (`ollama serve`) and a model is pulled (`ollama pull mistral`)."}, model
+        return {"error": f"❌ Cannot connect to Ollama at {OLLAMA_API_URL}. If you are on Streamlit Cloud, it cannot access your computer's local Ollama. Please use the local app (http://localhost:8501)."}, model
     except requests.exceptions.Timeout:
         return {"error": "⏱️ Ollama timed out. The model may still be loading — try again in a moment."}, model
     except requests.exceptions.RequestException as e:
