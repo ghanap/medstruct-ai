@@ -1,6 +1,14 @@
 import pytesseract
 from PIL import Image, ImageEnhance
 import logging
+import sys
+import os
+
+# Configure Tesseract path for Windows local environments
+if sys.platform == "win32":
+    tess_path = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+    if os.path.exists(tess_path):
+        pytesseract.pytesseract.tesseract_cmd = tess_path
 
 logger = logging.getLogger(__name__)
 

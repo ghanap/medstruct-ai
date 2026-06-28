@@ -24,15 +24,11 @@ def run_pipeline(image_path_or_file, doc_type="Prescription", save_to_db=True):
     result["ocr_confidence"] = confidence
     
     if text.startswith("TESSERACT_NOT_FOUND_OR_FAILED"):
-        result["error"] = "Tesseract OCR is not installed or failed to run."
-        return result
-        
-    if not text.strip():
-        result["error"] = "No text could be extracted from the image."
-        return result
+        logger.warning("Tesseract failed. Continuing with Vision AI if possible.")
+        text = ""
         
     # 2. LLM Extraction
-    structured_data, model = extract_structured_data(text)
+    structured_data, model = extract_structured_data(text, image_path_or_file)
     result["llm_model"] = model
     
     if "error" in structured_data:

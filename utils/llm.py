@@ -2,6 +2,7 @@ import os
 import json
 import requests
 import logging
+import base64
 
 logger = logging.getLogger(__name__)
 
@@ -9,10 +10,10 @@ OLLAMA_API_URL = "http://localhost:11434/api/generate"
 DEFAULT_MODEL = os.getenv("OLLAMA_MODEL", "mistral")
 
 AUTO_DETECT_PROMPT = """
-You are an expert medical document analyst. I will give you raw OCR text from a medical document (could be a prescription, lab report, discharge summary, X-ray report, blood test, scan report, etc).
+You are an expert medical document analyst. I will give you raw OCR text from a medical document, AND/OR a raw image of a medical scan (like an X-Ray).
 
-Step 1 — Auto-detect the document type from the text.
-Step 2 — Extract ALL relevant information for that document type.
+Step 1 — Auto-detect the document type.
+Step 2 — Extract ALL relevant information (including analyzing the visual image for fractures or findings if an image is provided).
 Step 3 — Return a single JSON with these fields:
 
 {{
@@ -59,22 +60,29 @@ Raw OCR Text:
 """
 
 
-def extract_structured_data(ocr_text: str, model: str = DEFAULT_MODEL):
+def extract_structured_data(ocr_text: str, image_file=None, model: str = DEFAULT_MODEL):
     """
-    Sends OCR text to Ollama. Auto-detects document type and returns rich structured data.
+    Sends OCR text (and optional image) to Ollama.
     """
-    if not ocr_text or ocr_text.startswith("TESSERACT_NOT_FOUND_OR_FAILED"):
-        return {"error": "OCR failed or Tesseract not found."}, model
-
-    # If OCR returned very little text (e.g. X-ray image), still try with what we have
-    prompt = AUTO_DETECT_PROMPT.format(ocr_text=ocr_text.strip() or "[No text detected — this may be an imaging scan]")
+    if (not ocr_text or ocr_text.startswith("TESSERACT_NOT_FOUND_OR_FAILED")) and not image_file:
+        return {"error": "No text or image provided."}, model
 
     payload = {
         "model": model,
-        "prompt": prompt,
+        "prompt": AUTO_DETECT_PROMPT.format(ocr_text=ocr_text.strip() or "[No text detected]"),
         "stream": False,
         "format": "json",
     }
+
+    if image_file:
+        try:
+            image_bytes = image_file.getvalue() if hasattr(image_file, 'getvalue') else open(image_file, "rb").read()
+            payload["images"] = [base64.b64encode(image_bytes).decode("utf-8")]
+            model = "llava"
+            payload["model"] = model
+            logger.info("Image detected. Switching Ollama model to LLaVA for Vision analysis.")
+        except Exception as e:
+            logger.error(f"Failed to encode image for Vision API: {e}")
 
     try:
         response = requests.post(OLLAMA_API_URL, json=payload, timeout=120)
