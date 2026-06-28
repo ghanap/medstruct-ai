@@ -23,8 +23,8 @@ def run_pipeline(image_path_or_file, doc_type="Prescription", save_to_db=True):
     result["ocr_text"] = text
     result["ocr_confidence"] = confidence
     
-    if text.startswith("TESSERACT_NOT_FOUND_OR_FAILED"):
-        logger.warning("Tesseract failed. Continuing with Vision AI if possible.")
+    if text.startswith("TESSERACT_NOT_FOUND_OR_FAILED") or text.startswith("TROCR_"):
+        logger.warning("OCR engine failed or was not found. Continuing with Vision AI if possible.")
         text = ""
         
     # 2. LLM Extraction
