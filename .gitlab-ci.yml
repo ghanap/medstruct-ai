@@ -1,10 +1,9 @@
 # MedStruct AI — GitLab CI/CD (10 Stages)
-# Runs on a local GitLab Runner (offline-capable)
-# Runner tag: medstruct-runner
 
 default:
-  tags: [medstruct-runner]
   image: python:3.11-slim
+  tags:
+    - medstruct-runner
 
 stages:
   - prepare
@@ -18,38 +17,47 @@ stages:
   - offline-check
   - package
 
-# ── Cache venv across jobs ─────────────────────────────────────────
 variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   VENV_PATH: "$CI_PROJECT_DIR/venv"
+
+cache:
+  paths:
+    - .cache/pip
 
 .python-setup: &python-setup
   before_script:
-    - apt-get update -qq && apt-get install -y -qq tesseract-ocr git
+    - apt-get update -qq
+    - apt-get install -y -qq git tesseract-ocr
     - python -m venv $VENV_PATH
-    - source $VENV_PATH/bin/activate
-    - pip install --quiet --upgrade pip
-    - pip install --quiet -r requirements.txt
-  cache:
-    key: pip-$CI_COMMIT_REF_SLUG
-    paths: [.pip-cache/]
+    - . $VENV_PATH/bin/activate
+    - pip install --upgrade pip
+    - pip install -r requirements.txt
+    - pip install ruff black pytest pytest-cov pip-audit detect-secrets
 
+# --------------------------------------------------
 # 1. Prepare
+# --------------------------------------------------
 prepare:env:
   stage: prepare
   <<: *python-setup
   script:
-    - echo "Environment successfully prepared."
+    - python --version
+    - pip --version
+    - echo "Environment prepared successfully."
 
+# --------------------------------------------------
 # 2. Lint
+# --------------------------------------------------
 lint:ruff:
   stage: lint
   <<: *python-setup
   script:
-    - ruff check . --select E,W,F --ignore E501
-  allow_failure: false
+    - ruff check .
 
-# 3. Format
+# --------------------------------------------------
+# 3. Formatting
+# --------------------------------------------------
 format:black:
   stage: format
   <<: *python-setup
@@ -57,26 +65,32 @@ format:black:
     - black --check .
   allow_failure: true
 
+# --------------------------------------------------
 # 4. Unit Tests
+# --------------------------------------------------
 test:unit:
   stage: test-unit
   <<: *python-setup
   script:
-    - pytest tests/ -v -m "not integration" --cov=utils --cov-report=xml
+    - pytest tests/ -v -m "not integration"
 
+# --------------------------------------------------
 # 5. Integration Tests
+# --------------------------------------------------
 test:integration:
   stage: test-integration
   <<: *python-setup
   script:
     - pytest tests/ -v -m "integration"
 
+# --------------------------------------------------
 # 6. Coverage
+# --------------------------------------------------
 coverage:report:
   stage: coverage
   <<: *python-setup
   script:
-    - pytest tests/ --cov=utils --cov-report=term-missing
+    - pytest tests/ --cov=utils --cov-report=xml --cov-report=term
   coverage: '/TOTAL.*\s+(\d+%)$/'
   artifacts:
     reports:
@@ -85,39 +99,57 @@ coverage:report:
         path: coverage.xml
     expire_in: 1 week
 
-# 7. Audit Dependencies
+# --------------------------------------------------
+# 7. Dependency Audit
+# --------------------------------------------------
 audit:dependencies:
   stage: audit-deps
   <<: *python-setup
   script:
-    - pip-audit -r requirements.txt --ignore-vuln PYSEC-2022-42969
+    - pip-audit -r requirements.txt
   allow_failure: true
 
-# 8. Audit Secrets
+# --------------------------------------------------
+# 8. Secret Scan
+# --------------------------------------------------
 audit:secrets:
   stage: audit-secrets
+  <<: *python-setup
   script:
-    - apt-get update -qq && apt-get install -y -qq git python3-pip
-    - pip3 install detect-secrets --break-system-packages
-    - detect-secrets scan --baseline .secrets.baseline || true
+    - |
+      if [ ! -f .secrets.baseline ]; then
+        detect-secrets scan > .secrets.baseline
+      fi
     - detect-secrets audit .secrets.baseline
   allow_failure: true
 
-# 9. Offline Check
+# --------------------------------------------------
+# 9. Offline Verification
+# --------------------------------------------------
 offline:verify:
   stage: offline-check
   script:
-    - echo "Verifying no outbound network calls in source"
-    - '! grep -rnE "requests\.get|urllib\.request|httpx|aiohttp" utils/ app.py | grep -v "localhost\|127.0.0.1"'
-    - echo "PASS: No outbound internet calls found"
+    - echo "Checking for outbound internet calls..."
+    - |
+      if grep -REn "requests\.|urllib\.|httpx|aiohttp" utils app.py 2>/dev/null | grep -vqE "localhost|127\.0\.0\.1"; then
+        echo "❌ Outbound network calls detected!"
+        exit 1
+      else
+        echo "✅ Offline verification passed."
+      fi
 
-# 10. Package & Build
+# --------------------------------------------------
+# 10. Build
+# --------------------------------------------------
 build:package:
   stage: package
   <<: *python-setup
   script:
-    - python -m py_compile app.py utils/*.py
-    - echo "Build successful"
+    - python -m py_compile app.py
+    - find utils -name "*.py" -exec python -m py_compile {} \;
+    - echo "Build completed successfully."
   artifacts:
-    paths: [db/schema.sql, schemas/]
+    paths:
+      - docs/
+      - database/
     expire_in: 1 week
