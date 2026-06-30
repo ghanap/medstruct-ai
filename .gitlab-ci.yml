@@ -86,7 +86,7 @@ audit:secrets:
   <<: *python-setup
   script:
     - python -m pip install --quiet detect-secrets
-    - detect-secrets scan --baseline .secrets.baseline
+    - detect-secrets scan .
   allow_failure: true
 
 # 9. Offline Check
