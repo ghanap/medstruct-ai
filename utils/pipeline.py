@@ -17,7 +17,7 @@ def run_pipeline(image_path_or_file, doc_type="auto", save_to_db=True):
         "rx_id": None,
         "llm_model": None
     }
-    
+
     # Reset stream pointer
     if hasattr(image_path_or_file, 'seek'):
         try:
@@ -29,7 +29,7 @@ def run_pipeline(image_path_or_file, doc_type="auto", save_to_db=True):
     detected_type = "document"
     if image_path_or_file:
         detected_type = triage_image(image_path_or_file)
-        
+
         # Reset stream pointer again for next steps
         if hasattr(image_path_or_file, 'seek'):
             try:
@@ -49,27 +49,27 @@ def run_pipeline(image_path_or_file, doc_type="auto", save_to_db=True):
         text, confidence = extract_text(image_path_or_file)
         result["ocr_text"] = text
         result["ocr_confidence"] = confidence
-        
+
         if text.startswith("TESSERACT_NOT_FOUND_OR_FAILED") or text.startswith("TROCR_"):
             logger.warning("OCR engine failed or was not found.")
             text = ""
-            
+
         if hasattr(image_path_or_file, 'seek'):
             try:
                 image_path_or_file.seek(0)
             except Exception:
                 pass
-                
+
         structured_data, model = extract_document_data(text, image_path_or_file)
         result["llm_model"] = model
-    
+
     # 3. Post-Processing & DB
     if "error" in structured_data:
         result["error"] = structured_data["error"]
         result["extracted"] = structured_data
     else:
         result["extracted"] = structured_data
-        
+
     if save_to_db:
         try:
             rx_id = save_prescription(result)
@@ -77,5 +77,5 @@ def run_pipeline(image_path_or_file, doc_type="auto", save_to_db=True):
         except Exception as e:
             logger.error(f"Failed to save to database: {e}")
             result["error"] = f"Database error: {e}"
-            
+
     return result

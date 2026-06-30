@@ -44,12 +44,12 @@ def extract_text(image_path_or_file):
         pixel_values = processor(images=img, return_tensors="pt").pixel_values
         generated_ids = model.generate(pixel_values)
         generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
-        
-        # TrOCR doesn't provide a simple confidence score per word easily, 
+
+        # TrOCR doesn't provide a simple confidence score per word easily,
         # so we assign a baseline confidence of 0.85 if it succeeds.
         confidence = 0.85 if generated_text else 0.0
         return generated_text.strip(), confidence
-        
+
     except Exception as e:
         logger.error(f"TrOCR extraction failed: {e}")
         return f"TROCR_FAILED: {str(e)}", 0.0

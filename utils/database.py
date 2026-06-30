@@ -53,15 +53,15 @@ def save_prescription(result_dict, db_path=None):
     """
     conn = _get_conn(db_path)
     c = conn.cursor()
-    
+
     extracted = result_dict.get("extracted") or {}
-    
+
     patient_name = extracted.get("patient", {}).get("name") if isinstance(extracted.get("patient"), dict) else None
     doctor_name = extracted.get("doctor", {}).get("name") if isinstance(extracted.get("doctor"), dict) else None
     diagnosis = extracted.get("diagnosis")
-    
+
     c.execute('''
-        INSERT INTO prescriptions 
+        INSERT INTO prescriptions
         (created_at, patient_name, doctor_name, diagnosis, ocr_text, extracted_json, confidence, llm_model, error_message)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
@@ -75,9 +75,9 @@ def save_prescription(result_dict, db_path=None):
         result_dict.get("llm_model"),
         result_dict.get("error")
     ))
-    
+
     prescription_id = c.lastrowid
-    
+
     # Save medications if available
     meds = extracted.get("medications", [])
     if isinstance(meds, list):
@@ -94,7 +94,7 @@ def save_prescription(result_dict, db_path=None):
                     med.get("duration"),
                     med.get("instructions")
                 ))
-    
+
     conn.commit()
     conn.close()
     return prescription_id
@@ -104,7 +104,7 @@ def get_all_prescriptions(limit=100, db_path=None):
     c = conn.cursor()
     c.execute('''
         SELECT id, created_at, patient_name, doctor_name, error_message, confidence, llm_model
-        FROM prescriptions 
+        FROM prescriptions
         ORDER BY id DESC LIMIT ?
     ''', (limit,))
     rows = [dict(r) for r in c.fetchall()]
@@ -114,20 +114,20 @@ def get_all_prescriptions(limit=100, db_path=None):
 def get_prescription(row_id, db_path=None):
     conn = _get_conn(db_path)
     c = conn.cursor()
-    
+
     # Get main record
     c.execute('SELECT * FROM prescriptions WHERE id = ?', (row_id,))
     row = c.fetchone()
     if not row:
         conn.close()
         return None
-        
+
     result = dict(row)
-    
+
     # Get medications
     c.execute('SELECT * FROM medications WHERE prescription_id = ?', (row_id,))
     result['medications'] = [dict(r) for r in c.fetchall()]
-    
+
     conn.close()
     return result
 
@@ -135,18 +135,18 @@ def search_prescriptions(query, db_path=None):
     conn = _get_conn(db_path)
     c = conn.cursor()
     search_term = f"%{query}%"
-    
+
     c.execute('''
         SELECT DISTINCT p.id, p.created_at, p.patient_name, p.doctor_name, p.diagnosis
         FROM prescriptions p
         LEFT JOIN medications m ON p.id = m.prescription_id
-        WHERE p.patient_name LIKE ? 
-           OR p.doctor_name LIKE ? 
+        WHERE p.patient_name LIKE ?
+           OR p.doctor_name LIKE ?
            OR p.diagnosis LIKE ?
            OR m.drug_name LIKE ?
         ORDER BY p.id DESC
     ''', (search_term, search_term, search_term, search_term))
-    
+
     rows = [dict(r) for r in c.fetchall()]
     conn.close()
     return rows
@@ -154,21 +154,21 @@ def search_prescriptions(query, db_path=None):
 def get_stats(db_path=None):
     conn = _get_conn(db_path)
     c = conn.cursor()
-    
+
     c.execute('SELECT COUNT(*) as total FROM prescriptions')
     total = c.fetchone()['total'] or 0
-    
+
     today_str = datetime.now().isoformat()[:10] + '%'
     c.execute('SELECT COUNT(*) as today FROM prescriptions WHERE created_at LIKE ?', (today_str,))
     today = c.fetchone()['today'] or 0
-    
+
     c.execute('SELECT AVG(confidence) as avg_conf FROM prescriptions WHERE confidence IS NOT NULL')
     avg_conf = c.fetchone()['avg_conf']
     avg_conf = float(avg_conf) if avg_conf else 0.0
-    
+
     c.execute('SELECT COUNT(DISTINCT patient_name) as unique_patients FROM prescriptions WHERE patient_name IS NOT NULL')
     unique_patients = c.fetchone()['unique_patients'] or 0
-    
+
     conn.close()
     return {
         "total": total,

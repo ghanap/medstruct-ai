@@ -104,7 +104,7 @@ def _run_llm_json(payload, model):
         response.raise_for_status()
         result = response.json()
         response_text = result.get("response", "")
-        
+
         try:
             structured_data = json.loads(response_text)
             return structured_data, model
@@ -114,7 +114,7 @@ def _run_llm_json(payload, model):
                 return json.loads(cleaned), model
             logger.error("Failed to parse LLM response as JSON")
             return {"error": "Ollama did not return valid JSON.", "raw_response": response_text}, model
-            
+
     except requests.exceptions.ConnectionError:
         return {"error": f"❌ Cannot connect to Ollama at {OLLAMA_API_URL}."}, model
     except requests.exceptions.Timeout:
