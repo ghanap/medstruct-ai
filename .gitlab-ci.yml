@@ -18,6 +18,7 @@ stages:
 
 variables:
   PYTHONPATH: "$CI_PROJECT_DIR"
+  GIT_CLEAN_FLAGS: "-ffdx -e venv/"
 
 cache:
   paths:
