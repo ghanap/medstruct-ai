@@ -74,12 +74,17 @@ Raw OCR Text:
 {ocr_text}
 """
 
+
 def triage_image(image_file):
     """
     Passes ONLY the image to LLaVA to ask if it's an X-Ray or a Document.
     Returns 'xray' or 'document'.
     """
-    image_bytes = image_file.getvalue() if hasattr(image_file, 'getvalue') else open(image_file, "rb").read()
+    image_bytes = (
+        image_file.getvalue()
+        if hasattr(image_file, "getvalue")
+        else open(image_file, "rb").read()
+    )
     payload = {
         "model": "llava",
         "prompt": TRIAGE_PROMPT,
@@ -96,7 +101,8 @@ def triage_image(image_file):
         return "document"
     except Exception as e:
         logger.error(f"Triage failed: {e}")
-        return "document" # fallback
+        return "document"  # fallback
+
 
 def _run_llm_json(payload, model):
     try:
@@ -113,33 +119,50 @@ def _run_llm_json(payload, model):
                 cleaned = response_text.split("```json")[1].split("```")[0].strip()
                 return json.loads(cleaned), model
             logger.error("Failed to parse LLM response as JSON")
-            return {"error": "Ollama did not return valid JSON.", "raw_response": response_text}, model
+            return {
+                "error": "Ollama did not return valid JSON.",
+                "raw_response": response_text,
+            }, model
 
     except requests.exceptions.ConnectionError:
         return {"error": f"❌ Cannot connect to Ollama at {OLLAMA_API_URL}."}, model
     except requests.exceptions.Timeout:
-        return {"error": "⏱️ Ollama timed out. The model may still be loading — try again in a moment."}, model
+        return {
+            "error": "⏱️ Ollama timed out. The model may still be loading — try again in a moment."
+        }, model
     except requests.exceptions.RequestException as e:
         logger.error(f"Ollama API request failed: {e}")
         return {"error": f"Ollama error: {str(e)}"}, model
 
+
 def extract_xray_data(image_file):
-    image_bytes = image_file.getvalue() if hasattr(image_file, 'getvalue') else open(image_file, "rb").read()
+    image_bytes = (
+        image_file.getvalue()
+        if hasattr(image_file, "getvalue")
+        else open(image_file, "rb").read()
+    )
     payload = {
         "model": "llava",
         "prompt": XRAY_PROMPT,
         "images": [base64.b64encode(image_bytes).decode("utf-8")],
         "stream": False,
-        "format": "json"
+        "format": "json",
     }
     logger.info("Running X-Ray Extraction Phase...")
     return _run_llm_json(payload, "llava")
 
+
 def extract_document_data(ocr_text: str, image_file=None, model: str = DEFAULT_MODEL):
-    if (not ocr_text or ocr_text.startswith("TESSERACT_NOT_FOUND_OR_FAILED") or ocr_text.startswith("TROCR_")) and not image_file:
+    if (
+        not ocr_text
+        or ocr_text.startswith("TESSERACT_NOT_FOUND_OR_FAILED")
+        or ocr_text.startswith("TROCR_")
+    ) and not image_file:
         return {"error": "No text or image provided."}, model
 
-    final_prompt = DOCUMENT_PROMPT.replace("{ocr_text}", ocr_text.strip() or "[No readable text detected]")
+    final_prompt = DOCUMENT_PROMPT.replace(
+        "{ocr_text}", ocr_text.strip() or "[No readable text detected]"
+    )
 
     payload = {
         "model": model,
@@ -150,7 +173,11 @@ def extract_document_data(ocr_text: str, image_file=None, model: str = DEFAULT_M
 
     if image_file:
         try:
-            image_bytes = image_file.getvalue() if hasattr(image_file, 'getvalue') else open(image_file, "rb").read()
+            image_bytes = (
+                image_file.getvalue()
+                if hasattr(image_file, "getvalue")
+                else open(image_file, "rb").read()
+            )
             payload["images"] = [base64.b64encode(image_bytes).decode("utf-8")]
             model = "llava"
             payload["model"] = model

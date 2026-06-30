@@ -8,18 +8,21 @@ def render():
     rows = get_all_prescriptions(limit=100)
 
     if not rows:
-        st.markdown("""
+        st.markdown(
+            """
         <div style="text-align:center;margin-top:4rem;color:#475569">
             <div style="font-size:48px">📋</div>
             <div style="font-size:16px;margin-top:12px">No records yet — upload a document first.</div>
         </div>
-        """, unsafe_allow_html=True)
+        """,
+            unsafe_allow_html=True,
+        )
         return
 
     st.caption(f"{len(rows)} record(s) stored locally on this device")
 
     for row in rows:
-        ts  = row["created_at"][:16]
+        ts = row["created_at"][:16]
         pat = row["patient_name"] or "Unknown patient"
         doc_type = row.get("doc_type", "").title() or "Document"
         label = f"#{row['id']}  ·  {ts}  ·  {pat}  ·  {doc_type}"
@@ -40,7 +43,9 @@ def render():
                 if meds:
                     st.markdown("**Medications**")
                     for m in meds:
-                        st.write(f"- **{m['drug_name']}** — {m.get('dosage','')} {m.get('frequency','')}")
+                        st.write(
+                            f"- **{m['drug_name']}** — {m.get('dosage','')} {m.get('frequency','')}"
+                        )
                 if extracted.get("imaging_findings"):
                     st.markdown(f"**Imaging:** {extracted['imaging_findings']}")
             with c2:

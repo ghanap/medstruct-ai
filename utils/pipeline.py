@@ -5,6 +5,7 @@ from utils.database import save_prescription
 
 logger = logging.getLogger(__name__)
 
+
 def run_pipeline(image_path_or_file, doc_type="auto", save_to_db=True):
     """
     Runs the Two-Pass extraction pipeline.
@@ -15,11 +16,11 @@ def run_pipeline(image_path_or_file, doc_type="auto", save_to_db=True):
         "extracted": {},
         "error": None,
         "rx_id": None,
-        "llm_model": None
+        "llm_model": None,
     }
 
     # Reset stream pointer
-    if hasattr(image_path_or_file, 'seek'):
+    if hasattr(image_path_or_file, "seek"):
         try:
             image_path_or_file.seek(0)
         except Exception:
@@ -31,7 +32,7 @@ def run_pipeline(image_path_or_file, doc_type="auto", save_to_db=True):
         detected_type = triage_image(image_path_or_file)
 
         # Reset stream pointer again for next steps
-        if hasattr(image_path_or_file, 'seek'):
+        if hasattr(image_path_or_file, "seek"):
             try:
                 image_path_or_file.seek(0)
             except Exception:
@@ -50,11 +51,13 @@ def run_pipeline(image_path_or_file, doc_type="auto", save_to_db=True):
         result["ocr_text"] = text
         result["ocr_confidence"] = confidence
 
-        if text.startswith("TESSERACT_NOT_FOUND_OR_FAILED") or text.startswith("TROCR_"):
+        if text.startswith("TESSERACT_NOT_FOUND_OR_FAILED") or text.startswith(
+            "TROCR_"
+        ):
             logger.warning("OCR engine failed or was not found.")
             text = ""
 
-        if hasattr(image_path_or_file, 'seek'):
+        if hasattr(image_path_or_file, "seek"):
             try:
                 image_path_or_file.seek(0)
             except Exception:

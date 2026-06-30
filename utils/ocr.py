@@ -4,6 +4,7 @@ from PIL import Image
 
 logger = logging.getLogger(__name__)
 
+
 @st.cache_resource(show_spinner=False)
 def load_trocr_model():
     """
@@ -13,17 +14,23 @@ def load_trocr_model():
     logger.info("Loading TrOCR model into memory...")
     try:
         from transformers import TrOCRProcessor, VisionEncoderDecoderModel
+
         # Load the model (small version for speed)
         processor = TrOCRProcessor.from_pretrained("microsoft/trocr-small-handwritten")
-        model = VisionEncoderDecoderModel.from_pretrained("microsoft/trocr-small-handwritten")
+        model = VisionEncoderDecoderModel.from_pretrained(
+            "microsoft/trocr-small-handwritten"
+        )
         logger.info("TrOCR model loaded successfully.")
         return processor, model
     except ImportError:
-        logger.error("transformers or torch not installed. Run: pip install transformers torch torchvision")
+        logger.error(
+            "transformers or torch not installed. Run: pip install transformers torch torchvision"
+        )
         return None, None
     except Exception as e:
         logger.error(f"Failed to load TrOCR: {e}")
         return None, None
+
 
 def extract_text(image_path_or_file):
     """
@@ -43,7 +50,9 @@ def extract_text(image_path_or_file):
         # Generate text from image
         pixel_values = processor(images=img, return_tensors="pt").pixel_values
         generated_ids = model.generate(pixel_values)
-        generated_text = processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+        generated_text = processor.batch_decode(
+            generated_ids, skip_special_tokens=True
+        )[0]
 
         # TrOCR doesn't provide a simple confidence score per word easily,
         # so we assign a baseline confidence of 0.85 if it succeeds.

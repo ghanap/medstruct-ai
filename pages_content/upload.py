@@ -7,7 +7,9 @@ from utils.pipeline import run_pipeline
 
 def render():
     st.title("Upload & Analyse")
-    st.caption("📍 100% offline — prescriptions, lab reports, X-rays, scans — Ollama auto-detects everything.")
+    st.caption(
+        "📍 100% offline — prescriptions, lab reports, X-rays, scans — Ollama auto-detects everything."
+    )
 
     tab1, tab2 = st.tabs(["📁 Upload File", "📷 Take Picture"])
     with tab1:
@@ -22,13 +24,16 @@ def render():
     uploaded = uploaded_file or camera_file
 
     if not uploaded:
-        st.markdown("""
+        st.markdown(
+            """
         <div style="margin-top:3rem;text-align:center;color:#334155">
             <div style="font-size:64px">🏥</div>
             <div style="font-size:18px;font-weight:600;color:#64748b;margin-top:12px">Upload any medical document to get started</div>
             <div style="font-size:13px;color:#475569;margin-top:6px">Prescriptions · Lab Reports · X-Rays · Scans · Blood Tests</div>
         </div>
-        """, unsafe_allow_html=True)
+        """,
+            unsafe_allow_html=True,
+        )
         return
 
     col_img, col_result = st.columns([1, 1], gap="large")
@@ -45,7 +50,10 @@ def render():
         st.caption("Ollama auto-detects the document type — no selection needed!")
 
         # Auto-trigger analysis when a new file is uploaded
-        if "last_uploaded_file" not in st.session_state or st.session_state.last_uploaded_file != uploaded.name:
+        if (
+            "last_uploaded_file" not in st.session_state
+            or st.session_state.last_uploaded_file != uploaded.name
+        ):
             st.session_state.last_uploaded_file = uploaded.name
             st.session_state.analysis_result = None
 
@@ -55,7 +63,9 @@ def render():
 
             status.markdown("🔍 **Auto-analyzing document…**")
             bar.progress(30)
-            st.session_state.analysis_result = run_pipeline(uploaded, doc_type="auto", save_to_db=True)
+            st.session_state.analysis_result = run_pipeline(
+                uploaded, doc_type="auto", save_to_db=True
+            )
             bar.progress(100)
             status.empty()
             bar.empty()
@@ -71,9 +81,17 @@ def render():
 
             # Type badge
             doc_type = rx.get("document_type", "other").replace("_", " ").title()
-            emoji = {"Prescription":"💊","Lab Report":"🧪","Discharge Summary":"🏥",
-                     "Xray Report":"🩻","Scan Report":"📡","Blood Test":"🩸"}.get(doc_type, "📄")
-            st.success(f"✅ Record **#{result['rx_id']}** saved · {emoji} **{doc_type}** detected")
+            emoji = {
+                "Prescription": "💊",
+                "Lab Report": "🧪",
+                "Discharge Summary": "🏥",
+                "Xray Report": "🩻",
+                "Scan Report": "📡",
+                "Blood Test": "🩸",
+            }.get(doc_type, "📄")
+            st.success(
+                f"✅ Record **#{result['rx_id']}** saved · {emoji} **{doc_type}** detected"
+            )
 
             # Summary (THE MOST IMPORTANT THING)
             if rx.get("summary"):
@@ -81,17 +99,20 @@ def render():
                 st.info(rx["summary"])
 
             # Key concerns
-            for concern in (rx.get("key_concerns") or []):
+            for concern in rx.get("key_concerns") or []:
                 st.warning(f"⚠️ {concern}")
 
             # Imaging (X-ray/scan)
             if rx.get("imaging_findings"):
                 st.markdown("### 🩻 Imaging Findings")
-                st.markdown(f"""
+                st.markdown(
+                    f"""
                 <div style="background:#0d1526;border:1px solid #1e3a5f;border-radius:12px;padding:16px;color:#94a3b8">
                 {rx['imaging_findings']}
                 </div>
-                """, unsafe_allow_html=True)
+                """,
+                    unsafe_allow_html=True,
+                )
 
             # Diagnosis
             if rx.get("diagnosis"):
@@ -134,5 +155,7 @@ def render():
                 use_container_width=True,
             )
             with st.expander("Raw OCR text"):
-                st.text_area("", result["ocr_text"], height=160, label_visibility="collapsed")
+                st.text_area(
+                    "", result["ocr_text"], height=160, label_visibility="collapsed"
+                )
             st.caption(f"OCR confidence: **{result['ocr_confidence']:.1f}%**")

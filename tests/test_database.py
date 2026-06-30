@@ -1,6 +1,7 @@
 from utils.database import init_db
 
-TEST_DB = ':memory:'
+TEST_DB = ":memory:"
+
 
 def test_database_init():
     init_db(TEST_DB)

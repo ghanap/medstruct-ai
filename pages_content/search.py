@@ -7,16 +7,19 @@ def render():
     query = st.text_input(
         "Search",
         placeholder="Patient name, doctor, diagnosis, drug name…",
-        label_visibility="collapsed"
+        label_visibility="collapsed",
     )
 
     if not query:
-        st.markdown("""
+        st.markdown(
+            """
         <div style="text-align:center;margin-top:4rem;color:#475569">
             <div style="font-size:48px">🔍</div>
             <div style="font-size:16px;margin-top:12px">All searches run locally — nothing leaves your device.</div>
         </div>
-        """, unsafe_allow_html=True)
+        """,
+            unsafe_allow_html=True,
+        )
         return
 
     rows = search_prescriptions(query)

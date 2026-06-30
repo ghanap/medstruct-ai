@@ -1,6 +1,7 @@
 """
 MedStruct AI — Main entry point
 """
+
 import streamlit as st
 from utils.database import init_db, get_stats
 
@@ -16,7 +17,8 @@ st.set_page_config(
 init_db()
 
 # ── Custom CSS ─────────────────────────────────────────────────────
-st.markdown("""
+st.markdown(
+    """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
@@ -182,13 +184,15 @@ div[data-testid="metric-container"] label { color: #607d8b !important; font-size
 div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
 hr { border-color: #1e2d4a !important; }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # ── Sidebar nav ────────────────────────────────────────────────────
 PAGES = {
-    "upload":    ("📤", "Upload & Analyse"),
-    "history":   ("📋", "Record History"),
-    "search":    ("🔍", "Search Records"),
+    "upload": ("📤", "Upload & Analyse"),
+    "history": ("📋", "Record History"),
+    "search": ("🔍", "Search Records"),
     "dashboard": ("📊", "Dashboard"),
 }
 
@@ -196,21 +200,35 @@ if "page" not in st.session_state:
     st.session_state.page = "upload"
 
 with st.sidebar:
-    st.markdown('<div class="brand"><span style="font-size:28px">🏥</span><div><div class="brand-name">MedStruct AI</div><div class="brand-sub">Offline Medical OCR</div></div></div>', unsafe_allow_html=True)
-    st.markdown('<div class="offline-pill"><span>●</span> 100% Offline</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="brand"><span style="font-size:28px">🏥</span><div><div class="brand-name">MedStruct AI</div><div class="brand-sub">Offline Medical OCR</div></div></div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="offline-pill"><span>●</span> 100% Offline</div>',
+        unsafe_allow_html=True,
+    )
 
     st.markdown('<div class="nav-section">Navigation</div>', unsafe_allow_html=True)
     for key, (icon, label) in PAGES.items():
         is_active = st.session_state.page == key
         marker = "→ " if is_active else "   "
-        if st.button(f"{icon}  {marker}{label}", key=f"nav_{key}", use_container_width=True):
+        if st.button(
+            f"{icon}  {marker}{label}", key=f"nav_{key}", use_container_width=True
+        ):
             st.session_state.page = key
             st.rerun()
 
     st.markdown("---")
     stats = get_stats()
-    st.markdown(f'<div class="stat-chip">Records stored<span class="val">{stats["total"]}</span></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="stat-chip">Added today<span class="val">{stats["today"]}</span></div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="stat-chip">Records stored<span class="val">{stats["total"]}</span></div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        f'<div class="stat-chip">Added today<span class="val">{stats["today"]}</span></div>',
+        unsafe_allow_html=True,
+    )
 
 # ── Route to page ──────────────────────────────────────────────────
 page = st.session_state.page
