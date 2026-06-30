@@ -25,11 +25,12 @@ variables:
 
 .python-setup: &python-setup
   before_script:
-    - apt-get update -qq && apt-get install -y -qq tesseract-ocr git
-    - python -m venv $VENV_PATH
-    - source $VENV_PATH/bin/activate
-    - pip install --quiet --upgrade pip
-    - pip install --quiet -r requirements.txt
+    - apt-get update -qq
+    - apt-get install -y -qq git python3 python3-venv python3-pip tesseract-ocr
+    - python3 -m venv $VENV_PATH
+    - . $VENV_PATH/bin/activate
+    - python -m pip install --upgrade pip
+    - python -m pip install -r requirements.txt
   cache:
     key: pip-$CI_COMMIT_REF_SLUG
     paths:
@@ -84,6 +85,7 @@ coverage:report:
       coverage_report:
         coverage_format: cobertura
         path: coverage.xml
+    expire_in: 1 week
 
 # 7. Audit Dependencies
 audit:dependencies:
@@ -108,9 +110,13 @@ offline:verify:
   stage: offline-check
   script:
     - echo "Verifying no outbound network calls in source"
-    - '! grep -rnE "requests\.get|urllib\.request|httpx|aiohttp" utils/ app.py | grep -v "localhost\|127.0.0.1"'
-    - echo "PASS: No outbound internet calls found"
-  allow_failure: true
+    - |
+      if grep -rnE "requests\.get|urllib\.request|httpx|aiohttp" utils/ app.py | grep -vE "localhost|127\.0\.0\.1"; then
+        echo "FAIL: Outbound internet calls found"
+        exit 1
+      else
+        echo "PASS: No outbound internet calls found"
+      fi
 
 # 10. Package & Build
 build:package:
