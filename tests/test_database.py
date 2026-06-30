@@ -1,5 +1,4 @@
 import pytest
-import os
 from utils.database import (
     init_db,
     save_prescription,
