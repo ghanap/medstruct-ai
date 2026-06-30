@@ -22,7 +22,7 @@ variables:
 
 .python-setup: &python-setup
   before_script:
-    - if (!(Test-Path -Path "venv")) { py -3.11 -m venv venv }
+    - if (Test-Path -Path "venv") { echo "venv already exists, skipping creation" } else { py -3.11 -m venv venv }
     - .\venv\Scripts\Activate.ps1
     - python -m pip install --quiet --upgrade pip
     - python -m pip install --quiet -r requirements.txt
