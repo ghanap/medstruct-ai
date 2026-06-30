@@ -1,9 +1,8 @@
 # MedStruct AI - GitLab CI/CD (10 Stages)
-
-image: python:3.11-slim
+# Shell executor on Windows (no Docker needed)
 
 default:
-  tags: [medstruct-runner]
+  tags: []
 
 stages:
   - prepare
