@@ -20,10 +20,6 @@ variables:
   PYTHONPATH: "$CI_PROJECT_DIR"
   GIT_CLEAN_FLAGS: "-ffdx -e venv/"
 
-cache:
-  paths:
-    - venv/
-
 .python-setup: &python-setup
   before_script:
     - if (!(Test-Path -Path "venv")) { py -3.11 -m venv venv }
