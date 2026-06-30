@@ -182,6 +182,8 @@ div[data-testid="metric-container"] {
 }
 div[data-testid="metric-container"] label { color: #607d8b !important; font-size: 12px !important; font-weight: 600 !important; text-transform: uppercase; letter-spacing: 0.5px; }
 div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
+    color: #0077b6 !important;
+}
 hr { border-color: #1e2d4a !important; }
 </style>
 """,
