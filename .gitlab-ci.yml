@@ -21,6 +21,8 @@ variables:
 
 .python-setup: &python-setup
   before_script:
+    - py -3.11 -m venv venv
+    - .\venv\Scripts\Activate.ps1
     - python -m pip install --quiet --upgrade pip
     - python -m pip install --quiet -r requirements.txt
 
