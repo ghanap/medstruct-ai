@@ -2,7 +2,7 @@
 # Shell executor on Windows (no Docker needed)
 
 default:
-  tags: [medstruct-runner]
+  tags: []
 
 stages:
   - prepare
