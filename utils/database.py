@@ -73,7 +73,7 @@ def save_prescription(result_dict, db_path=None):
 
     c.execute(
         """
-        INSERT INTO prescriptions 
+        INSERT INTO prescriptions
         (created_at, patient_name, doctor_name, diagnosis, ocr_text, extracted_json, confidence, llm_model, error_message)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     """,
@@ -123,7 +123,7 @@ def get_all_prescriptions(limit=100, db_path=None):
     c.execute(
         """
         SELECT id, created_at, patient_name, doctor_name, error_message, confidence, llm_model
-        FROM prescriptions 
+        FROM prescriptions
         ORDER BY id DESC LIMIT ?
     """,
         (limit,),
@@ -164,8 +164,8 @@ def search_prescriptions(query, db_path=None):
         SELECT DISTINCT p.id, p.created_at, p.patient_name, p.doctor_name, p.diagnosis
         FROM prescriptions p
         LEFT JOIN medications m ON p.id = m.prescription_id
-        WHERE p.patient_name LIKE ? 
-           OR p.doctor_name LIKE ? 
+        WHERE p.patient_name LIKE ?
+           OR p.doctor_name LIKE ?
            OR p.diagnosis LIKE ?
            OR m.drug_name LIKE ?
         ORDER BY p.id DESC
