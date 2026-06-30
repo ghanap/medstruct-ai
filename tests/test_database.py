@@ -1,4 +1,4 @@
-from utils.database import init_db, save_prescription
+from utils.database import init_db
 
 TEST_DB = ':memory:'
 

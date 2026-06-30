@@ -1,5 +1,4 @@
 from unittest.mock import patch
-from utils.pipeline import run_pipeline
 import pytest
 
 @patch('utils.pipeline.triage_image')
