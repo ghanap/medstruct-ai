@@ -114,8 +114,13 @@ offline:verify:
   stage: offline-check
   script:
     - echo "Verifying no outbound network calls in source"
-    - '! grep -rnE "requests\.get|urllib\.request|httpx|aiohttp" utils/ app.py | grep -v "localhost\|127.0.0.1"'
-    - echo "PASS: No outbound internet calls found"
+    - |
+      if grep -rnE "requests\.get|urllib\.request|httpx|aiohttp" utils/ app.py | grep -vE "localhost|127\.0\.0\.1"; then
+        echo "FAIL: Outbound internet calls found"
+        exit 1
+      else
+        echo "PASS: No outbound internet calls found"
+      fi
 
 # 10. Package & Build
 build:package:
