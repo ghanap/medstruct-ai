@@ -1,35 +1,31 @@
 # Demo Workflow
 
 ## Step 1
-
-Upload a prescription image.
-
-↓
-
-## Step 2
-
-Tesseract extracts text.
+Upload a medical image (Prescription or X-Ray).
 
 ↓
 
-## Step 3
-
-TinyLlama converts the text into structured JSON.
+## Step 2 (Triage Phase)
+`llama3` automatically classifies the image type.
 
 ↓
 
-## Step 4
+## Step 3 (Routing Phase)
+- **If Document:** Microsoft `trocr-small-handwritten` extracts the raw text.
+- **If X-Ray:** Process is routed to `llava` Vision LLM (skips OCR).
 
-Data is stored in SQLite.
+↓
+
+## Step 4 (Extraction Phase)
+- **Document Text:** `llama3` strictly formats the text into JSON.
+- **X-Ray Analysis:** `llava` analyzes the image and outputs JSON anomalies.
 
 ↓
 
 ## Step 5
-
-The user views the extracted medical information in Streamlit.
+Data is securely stored in local SQLite database.
 
 ↓
 
 ## Step 6
-
-The user can search previous records.
+User views extracted medical information via Streamlit Dashboard and can search historical records.

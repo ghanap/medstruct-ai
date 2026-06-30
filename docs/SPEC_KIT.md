@@ -6,48 +6,37 @@ Medical prescriptions and reports are often handwritten or unstructured, making 
 
 ## Solution
 
-MedStruct AI is an offline-first AI application that extracts structured medical information from prescription images using OCR and a local Small Language Model (SLM). The extracted data is stored locally in SQLite for quick retrieval.
+MedStruct AI is an offline-first AI application that leverages a Two-Pass Pipeline to intelligently triage and extract structured medical information from documents and X-Rays using state-of-the-art local SLMs (Small Language Models) and Vision-Language Models. The extracted data is securely stored locally in SQLite for fast retrieval.
 
 ## Objectives
 
-- Work completely offline
-- Run inference on CPU
-- Extract structured medical data
+- Work completely offline (100% HIPAA-ready)
+- Run inference purely on CPU without cloud dependencies
+- Automatically triage input formats (X-Ray vs Document)
+- Extract structured medical data and anomalies
 - Store records locally
 - Provide a simple user interface
 
 ## Input
 
-- Prescription Image (.jpg, .png)
-- Prescription PDF
+- Prescription Image / Medical Document (.jpg, .png)
+- Medical X-Ray Image (.jpg, .png)
 
 ## Output
 
-Structured JSON
-
-Example:
-
-```json
-{
-  "patient_name": "",
-  "doctor": "",
-  "diagnosis": [],
-  "medicines": [],
-  "follow_up": ""
-}
-```
+Strictly formatted JSON containing patient details, medications, or X-Ray anomalies.
 
 ## Tech Stack
 
 - Streamlit
 - Python
-- Tesseract OCR
-- llama.cpp
-- TinyLlama GGUF
+- Microsoft TrOCR (`trocr-small-handwritten`)
+- `llama3` via Ollama
+- `llava` (Vision LLM)
 - SQLite
 
 ## Constraints
 
-- CPU only
-- No cloud APIs
+- Zero cloud APIs
 - Offline operation
+- Resilient to poor handwriting (via TrOCR)
