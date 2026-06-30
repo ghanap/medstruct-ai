@@ -127,4 +127,3 @@ build:package:
   artifacts:
     paths: [db/schema.sql, schemas/]
     expire_in: 1 week
-Screenshot from 2026-06-28 10-27-43
