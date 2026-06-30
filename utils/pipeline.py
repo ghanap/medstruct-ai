@@ -5,6 +5,7 @@ from utils.database import save_prescription
 
 logger = logging.getLogger(__name__)
 
+
 def run_pipeline(image_path_or_file, doc_type="Prescription", save_to_db=True):
     """
     Runs the full extraction pipeline: Image -> OCR -> LLM -> DB.
@@ -15,33 +16,33 @@ def run_pipeline(image_path_or_file, doc_type="Prescription", save_to_db=True):
         "extracted": {},
         "error": None,
         "rx_id": None,
-        "llm_model": None
+        "llm_model": None,
     }
-    
+
     # 1. OCR
     text, confidence = extract_text(image_path_or_file)
     result["ocr_text"] = text
     result["ocr_confidence"] = confidence
-    
+
     if text.startswith("TESSERACT_NOT_FOUND_OR_FAILED"):
         result["error"] = "Tesseract OCR is not installed or failed to run."
         return result
-        
+
     if not text.strip():
         result["error"] = "No text could be extracted from the image."
         return result
-        
+
     # 2. LLM Extraction
     structured_data, model = extract_structured_data(text)
     result["llm_model"] = model
-    
+
     if "error" in structured_data:
         result["error"] = structured_data["error"]
         result["extracted"] = structured_data
         # Still save it if we want to log the error
     else:
         result["extracted"] = structured_data
-        
+
     # 3. Database
     if save_to_db:
         try:
@@ -50,5 +51,5 @@ def run_pipeline(image_path_or_file, doc_type="Prescription", save_to_db=True):
         except Exception as e:
             logger.error(f"Failed to save to database: {e}")
             result["error"] = f"Database error: {e}"
-            
+
     return result

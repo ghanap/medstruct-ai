@@ -52,3 +52,4 @@ htmlcov/
 uploads/
 sample_prescriptions/*.jpg
 sample_prescriptions/*.png
+builds/

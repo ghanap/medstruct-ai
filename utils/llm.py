@@ -51,6 +51,7 @@ Raw OCR Text:
 {ocr_text}
 """
 
+
 def extract_structured_data(ocr_text, model=DEFAULT_MODEL):
     """
     Sends the OCR text to Ollama and attempts to parse the returned JSON.
@@ -59,21 +60,21 @@ def extract_structured_data(ocr_text, model=DEFAULT_MODEL):
         return {"error": "OCR failed, cannot extract data."}, DEFAULT_MODEL
 
     prompt = EXTRACTION_PROMPT.format(ocr_text=ocr_text)
-    
+
     payload = {
         "model": model,
         "prompt": prompt,
         "stream": False,
-        "format": "json"  # Forces JSON output if supported by the model
+        "format": "json",  # Forces JSON output if supported by the model
     }
-    
+
     try:
         response = requests.post(OLLAMA_API_URL, json=payload, timeout=60)
         response.raise_for_status()
-        
+
         result = response.json()
         response_text = result.get("response", "")
-        
+
         # Parse the JSON
         try:
             structured_data = json.loads(response_text)
@@ -83,10 +84,15 @@ def extract_structured_data(ocr_text, model=DEFAULT_MODEL):
             if "```json" in response_text:
                 cleaned = response_text.split("```json")[1].split("```")[0].strip()
                 return json.loads(cleaned), model
-            
+
             logger.error("Failed to parse LLM response as JSON")
-            return {"error": "LLM did not return valid JSON.", "raw_response": response_text}, model
-            
+            return {
+                "error": "LLM did not return valid JSON.",
+                "raw_response": response_text,
+            }, model
+
     except requests.exceptions.RequestException as e:
         logger.error(f"Ollama API request failed: {e}")
-        return {"error": f"Failed to connect to Ollama. Is it running? ({str(e)})"}, model
+        return {
+            "error": f"Failed to connect to Ollama. Is it running? ({str(e)})"
+        }, model

@@ -2,18 +2,19 @@
 MedStruct AI — Streamlit Interface
 Run: streamlit run app.py
 """
+
 import json
 import streamlit as st
 from PIL import Image
 from datetime import datetime
 
-from utils.pipeline  import run_pipeline
-from utils.database  import (
+from utils.pipeline import run_pipeline
+from utils.database import (
     get_all_prescriptions,
     get_prescription,
     search_prescriptions,
     get_stats,
-    init_db
+    init_db,
 )
 
 # Initialize database tables if they don't exist
@@ -28,7 +29,8 @@ st.set_page_config(
 )
 
 # ── Custom CSS ─────────────────────────────────────────────────────
-st.markdown("""
+st.markdown(
+    """
 <style>
     .metric-card {
         background: #f8fafc;
@@ -48,17 +50,26 @@ st.markdown("""
     }
     .stAlert { border-radius: 8px !important; }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # ── Sidebar ────────────────────────────────────────────────────────
 with st.sidebar:
     st.image("assets/logo.png", use_column_width=True) if False else None
     st.markdown("## 🏥 MedStruct AI")
-    st.markdown('<span class="offline-badge">🔒 100% Offline</span>', unsafe_allow_html=True)
+    st.markdown(
+        '<span class="offline-badge">🔒 100% Offline</span>', unsafe_allow_html=True
+    )
     st.divider()
     page = st.radio(
         "Navigate",
-        ["📤 Upload & Extract", "📋 Record History", "🔍 Search Records", "📊 Dashboard"],
+        [
+            "📤 Upload & Extract",
+            "📋 Record History",
+            "🔍 Search Records",
+            "📊 Dashboard",
+        ],
         label_visibility="collapsed",
     )
     st.divider()
@@ -71,20 +82,22 @@ with st.sidebar:
 # ═══════════════════════════════════════════════════════════════════
 if page == "📤 Upload & Extract":
     st.title("Upload Medical Document")
-    st.caption("Prescriptions, lab reports, discharge summaries — processed entirely on your device.")
+    st.caption(
+        "Prescriptions, lab reports, discharge summaries — processed entirely on your device."
+    )
 
     tab1, tab2 = st.tabs(["📁 Upload File", "📷 Take Picture"])
-    
+
     with tab1:
         uploaded_file = st.file_uploader(
             "Drop a file here or click to browse",
             type=["jpg", "jpeg", "png", "bmp", "tiff", "pdf"],
             help="Max 20 MB · Supported: JPG, PNG, BMP, TIFF, PDF",
         )
-        
+
     with tab2:
         camera_file = st.camera_input("Take a picture of the document")
-        
+
     uploaded = uploaded_file or camera_file
 
     if uploaded:
@@ -104,7 +117,9 @@ if page == "📤 Upload & Extract":
                 ["Prescription", "Lab Report", "Discharge Summary", "Other"],
             )
 
-            run_btn = st.button("⚡ Extract & Structure", type="primary", use_container_width=True)
+            run_btn = st.button(
+                "⚡ Extract & Structure", type="primary", use_container_width=True
+            )
 
             if run_btn:
                 progress = st.progress(0, text="Starting OCR…")
@@ -136,7 +151,9 @@ if page == "📤 Upload & Extract":
                         d = rx.get("doctor", {})
                         st.markdown("**🩺 Doctor / Facility**")
                         c1, c2 = st.columns(2)
-                        c1.write(f"**{d.get('name','—')}**  ·  {d.get('qualification','')}")
+                        c1.write(
+                            f"**{d.get('name','—')}**  ·  {d.get('qualification','')}"
+                        )
                         c2.write(d.get("hospital", "—"))
 
                     # Diagnosis
@@ -150,11 +167,13 @@ if page == "📤 Upload & Extract":
                         st.dataframe(
                             meds,
                             column_config={
-                                "drug_name":    st.column_config.TextColumn("Drug"),
-                                "dosage":       st.column_config.TextColumn("Dosage"),
-                                "frequency":    st.column_config.TextColumn("Frequency"),
-                                "duration":     st.column_config.TextColumn("Duration"),
-                                "instructions": st.column_config.TextColumn("Instructions"),
+                                "drug_name": st.column_config.TextColumn("Drug"),
+                                "dosage": st.column_config.TextColumn("Dosage"),
+                                "frequency": st.column_config.TextColumn("Frequency"),
+                                "duration": st.column_config.TextColumn("Duration"),
+                                "instructions": st.column_config.TextColumn(
+                                    "Instructions"
+                                ),
                             },
                             use_container_width=True,
                             hide_index=True,
@@ -177,7 +196,12 @@ if page == "📤 Upload & Extract":
 
                     # OCR raw
                     with st.expander("Raw OCR text"):
-                        st.text_area("", result["ocr_text"], height=160, label_visibility="collapsed")
+                        st.text_area(
+                            "",
+                            result["ocr_text"],
+                            height=160,
+                            label_visibility="collapsed",
+                        )
 
                     st.caption(f"OCR confidence: **{result['ocr_confidence']:.1f}%**")
 
@@ -195,9 +219,9 @@ elif page == "📋 Record History":
         st.caption(f"{len(rows)} record(s) stored locally")
 
         for row in rows:
-            ts  = row["created_at"][:16]
+            ts = row["created_at"][:16]
             pat = row["patient_name"] or "Unknown patient"
-            doc = row["doctor_name"]  or "Unknown doctor"
+            doc = row["doctor_name"] or "Unknown doctor"
             col_label = f"#{row['id']}  ·  {ts}  ·  {pat}  ·  {doc}"
 
             with st.expander(col_label):
@@ -210,7 +234,9 @@ elif page == "📋 Record History":
                     if meds:
                         st.markdown("**Medications**")
                         for m in meds:
-                            st.write(f"- **{m['drug_name']}** — {m['dosage']} {m['frequency']}")
+                            st.write(
+                                f"- **{m['drug_name']}** — {m['dosage']} {m['frequency']}"
+                            )
                     if extracted.get("diagnosis"):
                         st.markdown(f"**Diagnosis:** {extracted['diagnosis']}")
                     if extracted.get("notes"):
@@ -235,7 +261,10 @@ elif page == "📋 Record History":
 # ═══════════════════════════════════════════════════════════════════
 elif page == "🔍 Search Records":
     st.title("Search Records")
-    query = st.text_input("Search by patient name, doctor, diagnosis, or drug", placeholder="e.g. Paracetamol")
+    query = st.text_input(
+        "Search by patient name, doctor, diagnosis, or drug",
+        placeholder="e.g. Paracetamol",
+    )
 
     if query:
         rows = search_prescriptions(query)
@@ -259,9 +288,9 @@ elif page == "📊 Dashboard":
     stats = get_stats()
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total records",   stats["total"])
-    c2.metric("Added today",     stats["today"])
-    c3.metric("Avg confidence",  f"{stats['avg_confidence']:.1f}%")
+    c1.metric("Total records", stats["total"])
+    c2.metric("Added today", stats["today"])
+    c3.metric("Avg confidence", f"{stats['avg_confidence']:.1f}%")
     c4.metric("Unique patients", stats["unique_patients"])
 
     st.divider()
